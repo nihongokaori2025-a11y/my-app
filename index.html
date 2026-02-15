@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>専門学校・面接シミュレーター</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap');
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #f1f5f9;
+        }
+        .animate-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .recording-pulse {
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+    </style>
+</head>
+<body class="min-h-screen overflow-x-hidden">
+
+    <div id="app" class="container mx-auto py-4 px-2 md:px-4 max-w-5xl">
+        <!-- Setup View -->
+        <div id="setup-view" class="max-w-2xl mx-auto space-y-8 animate-in">
+            <div class="text-center space-y-3">
+                <div class="inline-block p-4 bg-indigo-100 rounded-3xl mb-2 text-indigo-600">
+                    <i data-lucide="graduation-cap" class="w-12 h-12"></i>
+                </div>
+                <h1 class="text-3xl font-bold text-slate-800 tracking-tight">専門学校・面接シミュレーター</h1>
+                <p class="text-slate-500 font-medium">指定された8つの質問で練習を行います。</p>
+            </div>
+            
+            <div class="bg-white rounded-[40px] shadow-2xl p-10 border border-slate-100 space-y-10">
+                <div class="space-y-6">
+                    <label class="text-sm font-black text-slate-400 block text-center uppercase tracking-[0.2em]">コースを選んでください</label>
+                    <div class="grid grid-cols-2 gap-4" id="course-selector">
+                        <button onclick="selectCourse('ITビジネス')" class="course-btn p-6 rounded-3xl border-2 transition-all font-bold text-lg border-indigo-600 bg-indigo-50 text-indigo-700 shadow-lg scale-[1.03]">ITビジネス</button>
+                        <button onclick="selectCourse('介護・福祉')" class="course-btn p-6 rounded-3xl border-2 transition-all font-bold text-lg border-slate-50 bg-slate-50 text-slate-400 hover:border-indigo-100">介護・福祉</button>
+                        <button onclick="selectCourse('自動車整備')" class="course-btn p-6 rounded-3xl border-2 transition-all font-bold text-lg border-slate-50 bg-slate-50 text-slate-400 hover:border-indigo-100">自動車整備</button>
+                        <button onclick="selectCourse('ホテル・観光')" class="course-btn p-6 rounded-3xl border-2 transition-all font-bold text-lg border-slate-50 bg-slate-50 text-slate-400 hover:border-indigo-100">ホテル・観光</button>
+                    </div>
+                </div>
+                <button onclick="startInterview()" class="w-full py-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-3xl font-bold text-2xl shadow-xl shadow-indigo-100 flex items-center justify-center gap-3 transition-all active:scale-95">
+                    面接をはじめる
+                    <i data-lucide="chevron-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Interview View -->
+        <div id="interview-view" class="hidden flex flex-col h-[calc(100vh-60px)] animate-in">
+            <div class="bg-white rounded-[40px] shadow-2xl flex flex-col h-full overflow-hidden border border-slate-100">
+                <div class="p-3 border-b border-slate-50 flex items-center justify-between bg-white z-30">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 bg-indigo-600 rounded-xl flex items-center justify-center shadow-md">
+                            <i data-lucide="user" class="text-white w-5 h-5"></i>
+                        </div>
+                        <h2 id="display-course" class="font-bold text-slate-400 text-xs tracking-widest uppercase">面接官</h2>
+                    </div>
+                    <button onclick="finishInterview()" class="px-3 py-1 text-[10px] font-black text-slate-300 hover:text-red-400 transition-colors uppercase">おわる</button>
+                </div>
+
+                <div class="flex-1 flex flex-col items-center justify-center p-4 md:p-8 bg-slate-50/30 overflow-hidden relative">
+                    <div id="ai-card" class="w-full max-w-4xl bg-white p-6 md:p-12 rounded-[40px] shadow-xl border border-slate-100 flex flex-col items-center justify-center text-center relative">
+                        <div class="absolute top-4 left-6 opacity-[0.02] rotate-[-10deg] pointer-events-none">
+                            <i data-lucide="message-square" style="width: 80px; height: 80px;"></i>
+                        </div>
+                        
+                        <p id="ai-question" class="text-xl md:text-2xl lg:text-3xl leading-snug text-slate-800 font-bold max-w-3xl">
+                            準備をしています...
+                        </p>
+                        
+                        <div id="status-badge" class="mt-6 flex items-center gap-3 px-6 py-2 rounded-full border border-slate-200 bg-slate-100 text-slate-400 transition-all duration-500">
+                            <i id="status-icon" data-lucide="play-circle" class="w-4 h-4"></i>
+                            <span id="status-text" class="text-[10px] font-black uppercase tracking-[0.2em]">待機中</span>
+                        </div>
+                    </div>
+
+                    <div id="loading-spinner" class="hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white/95 backdrop-blur-xl p-6 rounded-full shadow-2xl flex items-center gap-3 z-40 border border-slate-100">
+                        <span class="w-3 h-3 bg-indigo-500 rounded-full animate-bounce"></span>
+                        <span class="w-3 h-3 bg-indigo-500 rounded-full animate-bounce" style="animation-delay: 150ms;"></span>
+                        <span class="w-3 h-3 bg-indigo-500 rounded-full animate-bounce" style="animation-delay: 300ms;"></span>
+                    </div>
+                </div>
+
+                <div class="p-6 bg-white border-t border-slate-100 flex flex-col items-center justify-center gap-4 z-30 shadow-inner">
+                    <div id="instruction-area" class="text-center">
+                        <p id="action-hint" class="text-slate-400 font-black text-sm">AIが話し終わるのを待ってください</p>
+                    </div>
+
+                    <div id="btn-container">
+                        <button id="record-btn" disabled onclick="startRecording()" class="group flex items-center gap-4 px-12 py-4 bg-red-600 hover:bg-red-700 disabled:bg-slate-100 disabled:text-slate-300 text-white rounded-[24px] font-black shadow-xl shadow-red-50 transition-all hover:scale-105 active:scale-95">
+                            <i data-lucide="mic" class="w-6 h-6"></i>
+                            <span class="text-xl">録音をはじめる</span>
+                        </button>
+                        <button id="next-btn" onclick="stopRecordingAndNext()" class="hidden group flex items-center gap-4 px-12 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-[24px] font-black shadow-xl shadow-indigo-50 transition-all hover:scale-105 active:scale-95">
+                            <span class="text-xl">話し終わった</span>
+                            <i data-lucide="arrow-right-circle" class="w-6 h-6"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feedback View -->
+        <div id="feedback-view" class="hidden max-w-4xl mx-auto space-y-10 animate-in">
+            <div class="text-center space-y-4">
+                <div class="inline-flex items-center justify-center w-20 h-20 bg-amber-50 rounded-[30px] rotate-6 mb-2 shadow-inner border border-amber-100 text-amber-500">
+                    <i data-lucide="award" class="w-12 h-12 -rotate-6"></i>
+                </div>
+                <h1 class="text-4xl font-black text-slate-800 tracking-tighter">練習お疲れ様でした！</h1>
+                <p class="text-slate-500 font-bold">下のボタンから音声を保存して学生に渡せます。</p>
+            </div>
+
+            <div class="bg-white rounded-[50px] shadow-2xl border border-slate-50 overflow-hidden">
+                <div class="p-10 border-b border-slate-50 bg-indigo-50/20">
+                    <h3 class="text-xl font-black text-slate-800 mb-6 flex items-center gap-4 text-indigo-600">
+                        <i data-lucide="mic" class="w-6 h-6"></i>
+                        回答データの保存
+                    </h3>
+                    <div id="audio-list" class="grid gap-4"></div>
+                </div>
+
+                <div class="p-10">
+                    <h3 class="text-xl font-black text-slate-800 mb-6 flex items-center gap-4 text-indigo-600">
+                        <i data-lucide="brain-circuit" class="w-6 h-6"></i>
+                        アドバイス
+                    </h3>
+                    <div id="feedback-content" class="whitespace-pre-wrap leading-relaxed text-slate-700 text-lg bg-slate-50 p-8 rounded-[30px] border border-slate-100 shadow-inner italic">
+                        アドバイスを作成しています...
+                    </div>
+                </div>
+
+                <div class="p-10 bg-slate-50 border-t border-slate-100 flex flex-col md:flex-row gap-4">
+                    <button onclick="resetApp()" class="flex-1 py-5 bg-indigo-600 text-white rounded-[24px] font-black text-xl hover:bg-indigo-700 transition-all shadow-xl active:scale-95">
+                        もう一度練習する
+                    </button>
+                    <button onclick="window.print()" class="flex-1 py-5 bg-white text-slate-400 rounded-[24px] font-black text-xl border border-slate-200 hover:bg-slate-50 transition-all active:scale-95">
+                        結果を印刷する
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const apiKey = ""; 
+        let currentCourse = "ITビジネス";
+        let messages = [];
+        let userAudioUrls = [];
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let currentAiAudio = null;
+
+        lucide.createIcons();
+
+        function selectCourse(course) {
+            currentCourse = course;
+            const btns = document.querySelectorAll('.course-btn');
+            btns.forEach(btn => {
+                if (btn.innerText === course) {
+                    btn.className = "course-btn p-6 rounded-3xl border-2 transition-all font-bold text-lg border-indigo-600 bg-indigo-50 text-indigo-700 shadow-lg scale-[1.03]";
+                } else {
+                    btn.className = "course-btn p-6 rounded-3xl border-2 transition-all font-bold text-lg border-slate-50 bg-slate-50 text-slate-400 hover:border-indigo-100";
+                }
+            });
+        }
+
+        async function startInterview() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                stream.getTracks().forEach(track => track.stop());
+            } catch (err) {
+                alert("マイクの使用許可が必要です。");
+                return;
+            }
+
+            document.getElementById('setup-view').classList.add('hidden');
+            document.getElementById('interview-view').classList.remove('hidden');
+            document.getElementById('display-course').innerText = `${currentCourse} 面接官`;
+
+            messages = [];
+            userAudioUrls = [];
+            
+            const systemPrompt = `あなたは専門学校の入試面接官です。受験生は留学生です。
+            
+            【絶対ルール】
+            1. 以下の「質問リスト」にある項目だけを、順番に一つずつ質問してください。
+            2. リストにない質問（深掘りや関連質問）は一切しないでください。
+            3. 「承知いたしました」や「次の質問をします」といった前置きは絶対に言わないでください。
+            4. 学生の名前（〇〇さん）は呼ばず、文脈に合わせて「あなた」「あなたの」「あなたが」を使ってください。
+
+            【質問リスト（この順序で1問ずつ、合計8問のみ）】
+            1. 名前・国・年齢
+            2. この学校に入りたい理由
+            3. 将来の夢
+            4. 今までしたアルバイトについて
+            5. アルバイトで楽しかったことや大変だったこと
+            6. 長所と短所
+            7. 今、一番興味のあることは何ですか
+            8. これからやってみたいことはなんですか`;
+
+            await getNextQuestion("面接を開始し、最初の質問「名前・国・年齢」をしてください。余計な言葉は含めないでください。", systemPrompt);
+        }
+
+        async function getNextQuestion(prompt, systemInstruction) {
+            setLoading(true);
+            try {
+                const response = await callGemini(prompt, systemInstruction);
+                messages.push({ role: 'ai', text: response });
+                updateAiQuestion(response);
+                await speakText(response);
+            } catch (err) {
+                updateAiQuestion("通信エラーが発生しました。");
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        async function callGemini(prompt, systemInstruction) {
+            let retries = 0;
+            while (retries < 5) {
+                try {
+                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: prompt }] }],
+                            systemInstruction: { parts: [{ text: systemInstruction }] }
+                        })
+                    });
+                    const data = await res.json();
+                    return data.candidates[0].content.parts[0].text;
+                } catch (e) {
+                    retries++;
+                    await new Promise(r => setTimeout(r, Math.pow(2, retries) * 1000));
+                }
+            }
+            throw new Error("Failed");
+        }
+
+        async function speakText(text) {
+            setStatus('ai');
+            try {
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: `Say naturally and politely: ${text}` }] }],
+                        generationConfig: {
+                            responseModalities: ["AUDIO"],
+                            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } }
+                        }
+                    })
+                });
+                const data = await res.json();
+                const audioBase64 = data.candidates[0].content.parts[0].inlineData.data;
+                const pcmBuffer = new Int16Array(Uint8Array.from(atob(audioBase64), c => c.charCodeAt(0)).buffer);
+                const wavBlob = pcmToWav(pcmBuffer, 24000);
+                const url = URL.createObjectURL(wavBlob);
+                
+                if (currentAiAudio) currentAiAudio.pause();
+                currentAiAudio = new Audio(url);
+                currentAiAudio.onended = () => {
+                    setStatus('idle');
+                    document.getElementById('record-btn').disabled = false;
+                    document.getElementById('action-hint').innerText = "👇 準備ができたら録音ボタンを押してください";
+                };
+                currentAiAudio.play();
+            } catch (e) {
+                setStatus('idle');
+            }
+        }
+
+        async function startRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+                mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(audioChunks, { type: 'audio/webm' });
+                    userAudioUrls.push(URL.createObjectURL(blob));
+                    stream.getTracks().forEach(t => t.stop());
+                };
+                mediaRecorder.start();
+                setStatus('recording');
+                document.getElementById('record-btn').classList.add('hidden');
+                document.getElementById('next-btn').classList.remove('hidden');
+                document.getElementById('action-hint').innerText = "🎤 はっきり話してください";
+            } catch (err) {
+                alert("マイク許可が必要です");
+            }
+        }
+
+        function stopRecordingAndNext() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                handleNextQuestion();
+            }
+        }
+
+        async function handleNextQuestion() {
+            document.getElementById('next-btn').classList.add('hidden');
+            document.getElementById('record-btn').classList.remove('hidden');
+            document.getElementById('record-btn').disabled = true;
+            document.getElementById('action-hint').innerText = "AIが次の質問を確認中...";
+            messages.push({ role: 'user', text: "(回答終了)" });
+            
+            const chatHistory = messages.map(m => `${m.role === 'ai' ? '面接官' : '学生'}: ${m.text}`).join('\n');
+            const systemPrompt = `あなたは専門学校の面接官です。リストの順序に従い、まだ聞いていない「次の質問文だけ」を1つ直接出力してください。
+            【リスト】
+            1. 名前・国・年齢
+            2. この学校に入りたい理由
+            3. 将来の夢
+            4. 今までしたアルバイトについて
+            5. アルバイトで楽しかったことや大変だったこと
+            6. 長所と短所
+            7. 今、一番興味のあることは何ですか
+            8. これからやってみたいことはなんですか`;
+
+            await getNextQuestion(`履歴:\n${chatHistory}\n\n次の質問をしてください。`, systemPrompt);
+        }
+
+        async function finishInterview() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
+            if (currentAiAudio) currentAiAudio.pause();
+            document.getElementById('interview-view').classList.add('hidden');
+            document.getElementById('feedback-view').classList.remove('hidden');
+            const aiQuestions = messages.filter(m => m.role === 'ai').map(m => m.text).join('\n');
+            try {
+                const result = await callGemini(`面接ログ:\n${aiQuestions}\n練習を終えた留学生に温かいアドバイスを伝えてください。`, "");
+                document.getElementById('feedback-content').innerText = result;
+                renderAudioList();
+            } catch (e) {
+                document.getElementById('feedback-content').innerText = "アドバイス生成失敗";
+            }
+        }
+
+        function renderAudioList() {
+            const list = document.getElementById('audio-list');
+            list.innerHTML = "";
+            userAudioUrls.forEach((url, i) => {
+                const div = document.createElement('div');
+                div.className = "flex flex-col md:flex-row items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 shadow-sm gap-4";
+                div.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-black text-xs">${i + 1}</span>
+                        <span class="font-black text-slate-400 uppercase tracking-widest text-[10px]">回答 ${i + 1}</span>
+                    </div>
+                    <div class="flex items-center gap-3 flex-1 w-full justify-end">
+                        <audio src="${url}" controls class="h-8 flex-1 max-w-[200px] md:max-w-md"></audio>
+                        <a href="${url}" download="回答_${i+1}.webm" class="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl font-bold text-xs hover:bg-indigo-100 transition-all">
+                            <i data-lucide="download" class="w-4 h-4"></i>
+                            保存
+                        </a>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+            lucide.createIcons();
+        }
+
+        function resetApp() {
+            document.getElementById('feedback-view').classList.add('hidden');
+            document.getElementById('setup-view').classList.remove('hidden');
+            userAudioUrls = [];
+            messages = [];
+        }
+
+        function setStatus(state) {
+            const badge = document.getElementById('status-badge');
+            const text = document.getElementById('status-text');
+            const icon = document.getElementById('status-icon');
+            badge.className = "mt-6 flex items-center gap-3 px-6 py-2 rounded-full border transition-all duration-500";
+            if (state === 'ai') {
+                badge.classList.add('bg-indigo-50', 'text-indigo-600', 'border-indigo-100', 'recording-pulse');
+                text.innerText = "AI音声 再生中...";
+                icon.setAttribute('data-lucide', 'volume-2');
+            } else if (state === 'recording') {
+                badge.classList.add('bg-red-50', 'text-red-600', 'border-red-200', 'recording-pulse');
+                text.innerText = "あなたの声を録音中...";
+                icon.setAttribute('data-lucide', 'mic');
+            } else {
+                badge.classList.add('bg-slate-100', 'text-slate-400', 'border-slate-200');
+                text.innerText = "待機中";
+                icon.setAttribute('data-lucide', 'play-circle');
+            }
+            lucide.createIcons();
+        }
+
+        function setLoading(isLoading) {
+            const spinner = document.getElementById('loading-spinner');
+            if (isLoading) spinner.classList.remove('hidden');
+            else spinner.classList.add('hidden');
+        }
+
+        function updateAiQuestion(text) {
+            document.getElementById('ai-question').innerText = text;
+        }
+
+        function pcmToWav(pcmData, sampleRate) {
+            const buffer = new ArrayBuffer(44 + pcmData.length * 2);
+            const view = new DataView(buffer);
+            const writeString = (o, s) => { for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i)); };
+            writeString(0, 'RIFF');
+            view.setUint32(4, 32 + pcmData.length * 2, true);
+            writeString(8, 'WAVE');
+            writeString(12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true);
+            view.setUint16(22, 1, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * 2, true);
+            view.setUint16(32, 2, true);
+            view.setUint16(34, 16, true);
+            writeString(36, 'data');
+            view.setUint32(40, pcmData.length * 2, true);
+            for (let i = 0; i < pcmData.length; i++) view.setInt16(44 + i * 2, pcmData[i], true);
+            return new Blob([buffer], { type: 'audio/wav' });
+        }
+    </script>
+</body>
+</html>
